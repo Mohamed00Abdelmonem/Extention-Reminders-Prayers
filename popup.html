@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salah Reminder</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="theme-light">
+    <main class="popup-shell">
+      <header class="topbar">
+        <div>
+          <img src="icon.png" alt="Salah Reminder logo" class="brand-logo" />
+          <p class="eyebrow">Salah Reminder</p>
+          <h1 id="cityName">Cairo, Egypt</h1>
+          <p id="currentDate" class="meta-line">Loading date...</p>
+        </div>
+
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">
+          <span class="theme-toggle__label">Dark mode</span>
+        </button>
+      </header>
+
+      <section class="hero-card">
+        <div class="hero-card__content">
+          <p class="hero-card__label">Next Prayer</p>
+          <h2 id="nextPrayerName">Loading...</h2>
+          <p id="nextPrayerTime" class="hero-card__time">--:--</p>
+          <p id="status" class="status">Loading prayer times...</p>
+        </div>
+      </section>
+
+      <section class="schedule-card">
+        <div class="schedule-card__header">
+          <h3>Today's Prayer Times</h3>
+          <p id="loadingHint" class="loading-hint">Fetching latest times...</p>
+        </div>
+
+        <div id="prayerTimes" class="prayer-grid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
