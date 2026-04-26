@@ -1,22 +1,34 @@
 // Salah Reminder background service worker.
-// It checks prayer times every minute, sends a 10-minute warning, sends the exact-time
-// notification, and plays an Adhan sound when prayer time starts.
+// Keeps prayer notifications, Azkar reminders, and Adhan playback scheduled for the saved location.
 
-const PRAYER_API_URL = "https://api.aladhan.com/v1/timingsByCity?city=Cairo&country=Egypt&method=5";
-const TIME_ZONE = "Africa/Cairo";
+const DEFAULT_LOCATION = { country: "Egypt", city: "Cairo" };
+const DEFAULT_TIME_ZONE = "Africa/Cairo";
 const CHECK_ALARM_NAME = "check-prayer-times";
 const PRAYER_NAMES = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
-const AZKAR_INTERVAL_MS = 5 * 60 * 1000;
 const NOTIFICATION_ICON_FILE = "icon.png";
-const AZKAR_LIST = ["سبحان الله", "الحمد لله", "الله أكبر", "لا إله إلا الله", "أستغفر الله"];
 const STORAGE_KEYS = {
   prayerTimes: "prayerTimes",
   prayerTimesDate: "prayerTimesDate",
   prayerSchedule: "prayerSchedule",
   prayerScheduleDate: "prayerScheduleDate",
-  azkarLastIndex: "azkarLastIndex", 
+  location: "location",
+  timeZone: "timeZone",
+  notificationsEnabled: "notificationsEnabled",
 };
-let azkarIntervalId = null;
+
+const AZKAR_ALARM_NAME = "azkar-supplications";
+const AZKAR_LIST = [
+  "سبحان الله وبحمده، سبحان الله العظيم",
+  "لا إله إلا الله وحده لا شريك له، له الملك وله الحمد، وهو على كل شيء قدير",
+  "أستغفر الله العظيم الذي لا إله إلا هو الحي القيوم وأتوب إليه",
+  "اللهم صل وسلم وبارك على نبينا محمد",
+  "لا حول ولا قوة إلا بالله العلي العظيم",
+  "حسبي الله لا إله إلا هو، عليه توكلت وهو رب العرش العظيم",
+  "رضيت بالله رباً، وبالإسلام ديناً، وبمحمد صلى الله عليه وسلم نبياً",
+  "يا حي يا قيوم برحمتك أستغيث، أصلح لي شأني كله ولا تكلني إلى نفسي طرفة عين",
+  "اللهم إنك عفو تحب العفو فاعف عني",
+  "سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر"
+];
 
 chrome.runtime.onInstalled.addListener(() => {
   initializeScheduler();
@@ -26,125 +38,105 @@ chrome.runtime.onStartup.addListener(() => {
   initializeScheduler();
 });
 
-chrome.alarms.onAlarm.addListener((alarm) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (["LOCATION_UPDATED", "PRAYER_TIMES_UPDATED", "NOTIFICATION_PREFS_UPDATED"].includes(message?.type)) {
+    initializeScheduler()
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.action === "playRadio") {
+    ensureOffscreenDocument()
+      .then(() => {
+        return sendRuntimeMessage({ action: "playRadioOffscreen", url: message.url });
+      })
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.action === "stopAudio") {
+    sendRuntimeMessage({ action: "stopAudioOffscreen" })
+      .then(() => sendResponse({ ok: true }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  return false;
+});
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name === CHECK_ALARM_NAME) {
-    checkPrayerTimes();
+    checkReminders();
+  } else if (alarm.name === AZKAR_ALARM_NAME) {
+    const notificationsEnabled = await areNotificationsEnabled();
+    if (notificationsEnabled) {
+      showRandomZikr();
+    }
   }
 });
 
 async function initializeScheduler() {
   await createAlarm(CHECK_ALARM_NAME, { periodInMinutes: 1 });
-  startAzkarReminder();
-  await checkPrayerTimes();
-}
+  await createAlarm(AZKAR_ALARM_NAME, { periodInMinutes: 3 });
 
-// Starts a repeating Azkar reminder every 5 minutes.
-// We keep one active interval to avoid duplicate timers.
-function startAzkarReminder() {
-  if (azkarIntervalId) {
-    return;
+  const stored = await storageGet(STORAGE_KEYS.notificationsEnabled);
+  if (typeof stored[STORAGE_KEYS.notificationsEnabled] === "undefined") {
+    await storageSet({ [STORAGE_KEYS.notificationsEnabled]: true });
   }
 
-  azkarIntervalId = setInterval(() => {
-    maybeSendAzkarReminder();
-  }, AZKAR_INTERVAL_MS);
+  await checkReminders();
 }
 
-// Sends one random zekr notification unless we're in an exact prayer minute.
-async function maybeSendAzkarReminder() {
+async function checkReminders() {
   try {
     const now = new Date();
-    const schedule = await getPrayerScheduleForToday(now);
-
-    if (isPrayerTimeNow(now, schedule)) {
-      return;
-    }
-
-    const stored = await storageGet(STORAGE_KEYS.azkarLastIndex);
-    const lastIndex = Number.isInteger(stored[STORAGE_KEYS.azkarLastIndex])
-      ? stored[STORAGE_KEYS.azkarLastIndex]
-      : -1;
-    const selectedIndex = pickRandomIndex(lastIndex, AZKAR_LIST.length);
-    const zekrText = AZKAR_LIST[selectedIndex];
-
-    await createNotification(`azkar-${Date.now()}`, {
-      type: "basic",
-      iconUrl: getNotificationIcon(),
-      title: "Azkar Reminder",
-      message: zekrText,
-      priority: 1,
-    });
-
-    await storageSet({ [STORAGE_KEYS.azkarLastIndex]: selectedIndex });
-  } catch (error) {
-    console.warn("Azkar reminder failed:", error);
-  }
-}
-
-// Returns true when the current minute is exactly a prayer time minute.
-function isPrayerTimeNow(now, schedule) {
-  for (const prayerName of PRAYER_NAMES) {
-    if (isWithinMinuteWindow(now, schedule[prayerName])) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-// Picks a random index and avoids repeating the same item consecutively.
-function pickRandomIndex(previousIndex, length) {
-  if (length <= 1) {
-    return 0;
-  }
-
-  let nextIndex = Math.floor(Math.random() * length);
-  while (nextIndex === previousIndex) {
-    nextIndex = Math.floor(Math.random() * length);
-  }
-
-  return nextIndex;
-}
-
-async function checkPrayerTimes() {
-  try {
-    const now = new Date();
-    const schedule = await getPrayerScheduleForToday(now);
-    const todayKey = getCairoDateKey(now);
+    const { schedule, timeZone, location } = await getPrayerScheduleForToday(now);
+    const todayKey = getDateKey(now, timeZone);
+    const notificationsEnabled = await areNotificationsEnabled();
 
     for (const prayerName of PRAYER_NAMES) {
       const prayerDate = schedule[prayerName];
 
-      await maybeNotify({
+      await maybeHandlePrayerReminder({
         now,
         prayerName,
         prayerDate,
         todayKey,
+        location,
+        notificationsEnabled,
         type: "before",
         offsetMinutes: -10,
         title: `${prayerName} in 10 minutes`,
-        message: `Prepare for ${prayerName}. It begins at ${formatPrayerTime(prayerDate)}.`,
+        message: `Prepare for ${prayerName}. It begins at ${formatPrayerTime(prayerDate, timeZone)}.`,
         playAdhan: false,
       });
 
-      await maybeNotify({
+      await maybeHandlePrayerReminder({
         now,
         prayerName,
         prayerDate,
         todayKey,
+        location,
+        notificationsEnabled,
         type: "exact",
         offsetMinutes: 0,
         title: `${prayerName} time`,
-        message: `${prayerName} time has started in Cairo.`,
+        message: `${prayerName} time has started in ${location.city}.`,
         playAdhan: true,
       });
+    }
+
+    if (notificationsEnabled) {
+      await maybeSendAzkarReminder(now, todayKey, timeZone);
     }
   } catch (error) {
     console.error("Salah Reminder check failed:", error);
   }
 }
 
-async function maybeNotify({
+async function maybeHandlePrayerReminder({
   now,
   prayerName,
   prayerDate,
@@ -154,6 +146,7 @@ async function maybeNotify({
   title,
   message,
   playAdhan,
+  notificationsEnabled,
 }) {
   const target = new Date(prayerDate.getTime() + offsetMinutes * 60000);
 
@@ -168,19 +161,70 @@ async function maybeNotify({
     return;
   }
 
-  await createNotification(storageKey, {
-    type: "basic",
-    iconUrl: getNotificationIcon(),
-    title,
-    message,
-    priority: 2,
-  });
+  if (notificationsEnabled) {
+    await createNotification(storageKey, {
+      type: "basic",
+      iconUrl: getNotificationIcon(),
+      title,
+      message,
+      priority: type === "exact" ? 2 : 1,
+    });
+  }
 
   if (playAdhan) {
     await playAdhanSound();
   }
 
   await storageSet({ [storageKey]: true });
+}
+
+async function maybeSendAzkarReminder(now, todayKey, timeZone) {
+  const reminders = [
+    { type: "morning", hour: 8, title: "Morning Azkar", message: "Take a quiet moment for morning Azkar." },
+    { type: "evening", hour: 18, title: "Evening Azkar", message: "Take a quiet moment for evening Azkar." },
+  ];
+
+  for (const reminder of reminders) {
+    const target = createZonedDate({
+      ...getTimeZoneParts(now, timeZone),
+      hour: reminder.hour,
+      minute: 0,
+      second: 0,
+      timeZone,
+    });
+
+    if (!isWithinMinuteWindow(now, target)) {
+      continue;
+    }
+
+    const storageKey = `${todayKey}:azkar:${reminder.type}`;
+    const stored = await storageGet(storageKey);
+    if (stored[storageKey]) {
+      continue;
+    }
+
+    await createNotification(storageKey, {
+      type: "basic",
+      iconUrl: getNotificationIcon(),
+      title: reminder.title,
+      message: reminder.message,
+      priority: 1,
+    });
+    await storageSet({ [storageKey]: true });
+  }
+}
+
+async function showRandomZikr() {
+  const randomZikr = AZKAR_LIST[Math.floor(Math.random() * AZKAR_LIST.length)];
+  const notificationId = `azkar-random-${Date.now()}`;
+  
+  await createNotification(notificationId, {
+    type: "basic",
+    iconUrl: getNotificationIcon(),
+    title: "ذكر - Zikr",
+    message: randomZikr,
+    priority: 1,
+  });
 }
 
 function isWithinMinuteWindow(now, target) {
@@ -191,19 +235,49 @@ function isWithinMinuteWindow(now, target) {
 }
 
 async function getPrayerScheduleForToday(referenceDate) {
-  const todayKey = getCairoDateKey(referenceDate);
+  const location = await getStoredLocation();
   const stored = await storageGet([
     STORAGE_KEYS.prayerTimes,
     STORAGE_KEYS.prayerTimesDate,
     STORAGE_KEYS.prayerSchedule,
     STORAGE_KEYS.prayerScheduleDate,
+    STORAGE_KEYS.timeZone,
+    STORAGE_KEYS.location,
   ]);
+  const timeZone = stored[STORAGE_KEYS.timeZone] || DEFAULT_TIME_ZONE;
+  const todayKey = getDateKey(referenceDate, timeZone);
 
   if (stored[STORAGE_KEYS.prayerScheduleDate] === todayKey && stored[STORAGE_KEYS.prayerSchedule]) {
-    return deserializePrayerSchedule(stored[STORAGE_KEYS.prayerSchedule]);
+    return {
+      schedule: deserializePrayerSchedule(stored[STORAGE_KEYS.prayerSchedule]),
+      timeZone,
+      location,
+    };
   }
 
-  const response = await fetch(PRAYER_API_URL);
+  const result = await fetchPrayerTimes(location);
+  const schedule = buildPrayerSchedule(result.prayerTimes, referenceDate, result.timeZone);
+  const resultTodayKey = getDateKey(referenceDate, result.timeZone);
+
+  await storageSet({
+    [STORAGE_KEYS.prayerTimes]: result.prayerTimes,
+    [STORAGE_KEYS.prayerTimesDate]: resultTodayKey,
+    [STORAGE_KEYS.prayerSchedule]: serializePrayerSchedule(schedule),
+    [STORAGE_KEYS.prayerScheduleDate]: resultTodayKey,
+    [STORAGE_KEYS.timeZone]: result.timeZone,
+  });
+
+  return {
+    schedule,
+    timeZone: result.timeZone,
+    location,
+  };
+}
+
+async function fetchPrayerTimes(location) {
+  const url = `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(location.city)}&country=${encodeURIComponent(location.country)}&method=5`;
+  const response = await fetch(url);
+
   if (!response.ok) {
     throw new Error(`API request failed with status ${response.status}`);
   }
@@ -215,31 +289,24 @@ async function getPrayerScheduleForToday(referenceDate) {
     throw new Error("Prayer times were not found in the API response.");
   }
 
-  const prayerTimes = normalizePrayerTimes(timings);
-  const schedule = buildPrayerSchedule(prayerTimes, referenceDate);
-
-  await storageSet({
-    [STORAGE_KEYS.prayerTimes]: prayerTimes,
-    [STORAGE_KEYS.prayerTimesDate]: todayKey,
-    [STORAGE_KEYS.prayerSchedule]: serializePrayerSchedule(schedule),
-    [STORAGE_KEYS.prayerScheduleDate]: todayKey,
-  });
-
-  return schedule;
-}
-
-function normalizePrayerTimes(timings) {
   return {
-    Fajr: normalizeTime(timings.Fajr),
-    Dhuhr: normalizeTime(timings.Dhuhr),
-    Asr: normalizeTime(timings.Asr),
-    Maghrib: normalizeTime(timings.Maghrib),
-    Isha: normalizeTime(timings.Isha),
+    prayerTimes: normalizePrayerTimes(timings),
+    timeZone: data?.data?.meta?.timezone || DEFAULT_TIME_ZONE,
   };
 }
 
-function buildPrayerSchedule(prayerTimes, referenceDate) {
-  const { year, month, day } = getCairoDateParts(referenceDate);
+function normalizePrayerTimes(timings) {
+  const prayerTimes = {};
+
+  for (const prayerName of PRAYER_NAMES) {
+    prayerTimes[prayerName] = normalizeTime(timings[prayerName]);
+  }
+
+  return prayerTimes;
+}
+
+function buildPrayerSchedule(prayerTimes, referenceDate, timeZone) {
+  const { year, month, day } = getTimeZoneParts(referenceDate, timeZone);
   const schedule = {};
 
   for (const prayerName of PRAYER_NAMES) {
@@ -251,7 +318,7 @@ function buildPrayerSchedule(prayerTimes, referenceDate) {
       hour: timeParts.hour,
       minute: timeParts.minute,
       second: 0,
-      timeZone: TIME_ZONE,
+      timeZone,
     });
   }
 
@@ -288,8 +355,8 @@ function getTimeZoneParts(date, timeZone) {
     second: "2-digit",
     hour12: false,
   }).formatToParts(date);
-
   const values = {};
+
   for (const part of parts) {
     if (part.type !== "literal") {
       values[part.type] = Number(part.value);
@@ -299,12 +366,8 @@ function getTimeZoneParts(date, timeZone) {
   return values;
 }
 
-function getCairoDateParts(referenceDate) {
-  return getTimeZoneParts(referenceDate, TIME_ZONE);
-}
-
-function getCairoDateKey(referenceDate) {
-  const { year, month, day } = getCairoDateParts(referenceDate);
+function getDateKey(referenceDate, timeZone) {
+  const { year, month, day } = getTimeZoneParts(referenceDate, timeZone);
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
@@ -322,9 +385,9 @@ function normalizeTime(timeValue) {
   return String(timeValue).slice(0, 5);
 }
 
-function formatPrayerTime(date) {
+function formatPrayerTime(date, timeZone) {
   return new Intl.DateTimeFormat("en-GB", {
-    timeZone: TIME_ZONE,
+    timeZone,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -349,6 +412,20 @@ function deserializePrayerSchedule(serializedSchedule) {
   }
 
   return schedule;
+}
+
+async function getStoredLocation() {
+  const stored = await storageGet(STORAGE_KEYS.location);
+  const location = stored[STORAGE_KEYS.location] || DEFAULT_LOCATION;
+  return {
+    country: location.country || DEFAULT_LOCATION.country,
+    city: location.city || DEFAULT_LOCATION.city,
+  };
+}
+
+async function areNotificationsEnabled() {
+  const stored = await storageGet(STORAGE_KEYS.notificationsEnabled);
+  return stored[STORAGE_KEYS.notificationsEnabled] !== false;
 }
 
 async function playAdhanSound() {
@@ -380,7 +457,7 @@ async function ensureOffscreenDocument() {
     await createOffscreenDocument({
       url: "offscreen.html",
       reasons: ["AUDIO_PLAYBACK"],
-      justification: "Play Adhan audio when a prayer time starts.",
+      justification: "Play audio for Adhan and Quran Radio.",
     });
   } catch (error) {
     const message = String(error?.message || error);
@@ -391,11 +468,9 @@ async function ensureOffscreenDocument() {
 }
 
 function getNotificationIcon() {
-  // Use a packaged file icon because some systems reject SVG/data URL notification icons.
   return chrome.runtime.getURL(NOTIFICATION_ICON_FILE);
 }
 
-// Wrapper helpers for callback-style APIs.
 function storageGet(keys) {
   return new Promise((resolve, reject) => {
     try {

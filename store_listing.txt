@@ -1,0 +1,13 @@
+Taqwa – Prayer Times, Azkar & Quran Radio is a lightweight Chrome extension that helps you stay consistent with your daily prayers.
+
+Get accurate prayer times based on your location, smart Adhan notifications, morning & evening Azkar, and listen to live Quran radio — all in one clean and distraction-free interface.
+
+Features:
+
+* Accurate prayer times (auto location or manual city selection)
+* Adhan alerts before and at prayer time
+* Daily Azkar (morning & evening)
+* Quran radio streaming
+* Clean UI with dark & light mode
+
+Stay connected to your faith every day with Taqwa.

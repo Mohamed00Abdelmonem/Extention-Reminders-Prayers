@@ -1,10 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Salah Reminder",
-  "version": "1.1.0",
-  "description": "Shows daily prayer times for Cairo and sends smart reminders before and at each prayer time.",
+  "name": "Taqwa – Prayer Times, Azkar & Quran Radio",
+  "version": "1.2.0",
+  "description": "Taqwa – Prayer Times, Azkar & Quran Radio is a lightweight Chrome extension that helps you stay consistent with your daily prayers.",
   "permissions": ["alarms", "notifications", "offscreen", "storage"],
   "host_permissions": ["https://api.aladhan.com/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; media-src 'self' http://* https://*"
+  },
   "web_accessible_resources": [
     {
       "resources": ["adhan.mp3"],
@@ -15,7 +18,7 @@
     "service_worker": "background.js"
   },
   "action": {
-    "default_title": "Salah Reminder",
+    "default_title": "Taqwa",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icon.png",

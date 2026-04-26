@@ -11,32 +11,124 @@
       <header class="topbar">
         <div>
           <img src="icon.png" alt="Salah Reminder logo" class="brand-logo" />
-          <p class="eyebrow">Salah Reminder</p>
-          <h1 id="cityName">Cairo, Egypt</h1>
+          <p class="eyebrow" id="salahReminderLabel">Salah Reminder</p>
+          <h1 id="cityName">Loading...</h1>
           <p id="currentDate" class="meta-line">Loading date...</p>
         </div>
 
-        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">
-          <span class="theme-toggle__label">Dark mode</span>
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button id="langToggle" class="theme-toggle" type="button" aria-label="Toggle language">
+            <span class="lang-toggle__label">عربي</span>
+          </button>
+          <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle dark mode">
+            <span class="theme-toggle__label">Dark mode</span>
+          </button>
+        </div>
       </header>
 
       <section class="hero-card">
         <div class="hero-card__content">
-          <p class="hero-card__label">Next Prayer</p>
+          <p class="hero-card__label" id="nextPrayerLabel">Next Prayer</p>
           <h2 id="nextPrayerName">Loading...</h2>
           <p id="nextPrayerTime" class="hero-card__time">--:--</p>
           <p id="status" class="status">Loading prayer times...</p>
         </div>
       </section>
 
-      <section class="schedule-card">
-        <div class="schedule-card__header">
-          <h3>Today's Prayer Times</h3>
+      <section class="app-section">
+        <div class="section-header">
+          <h3 id="prayerTimesLabel">Prayer Times</h3>
           <p id="loadingHint" class="loading-hint">Fetching latest times...</p>
         </div>
-
         <div id="prayerTimes" class="prayer-grid" aria-live="polite"></div>
+      </section>
+
+      <section class="app-section">
+        <div class="section-header">
+          <h3 id="locationSettingsLabel">Location Settings</h3>
+          <label class="switch-control">
+            <input id="notificationsToggle" type="checkbox" />
+            <span id="notificationsLabel">Notifications</span>
+          </label>
+        </div>
+
+        <form id="locationForm" class="settings-form">
+          <label>
+            <span id="countryLabel">Country</span>
+            <select id="countryInput">
+              <option value="Egypt">Egypt</option>
+              <option value="Saudi Arabia">Saudi Arabia</option>
+              <option value="United Arab Emirates">United Arab Emirates</option>
+              <option value="Kuwait">Kuwait</option>
+              <option value="Qatar">Qatar</option>
+              <option value="Bahrain">Bahrain</option>
+              <option value="Oman">Oman</option>
+              <option value="Jordan">Jordan</option>
+              <option value="Lebanon">Lebanon</option>
+              <option value="Syria">Syria</option>
+              <option value="Iraq">Iraq</option>
+              <option value="Palestine">Palestine</option>
+              <option value="Morocco">Morocco</option>
+              <option value="Algeria">Algeria</option>
+              <option value="Tunisia">Tunisia</option>
+              <option value="Libya">Libya</option>
+              <option value="Sudan">Sudan</option>
+              <option value="Yemen">Yemen</option>
+              <option value="United States">United States</option>
+              <option value="United Kingdom">United Kingdom</option>
+              <option value="Canada">Canada</option>
+              <option value="Australia">Australia</option>
+              <option value="Germany">Germany</option>
+              <option value="France">France</option>
+              <option value="Italy">Italy</option>
+              <option value="Spain">Spain</option>
+              <option value="Turkey">Turkey</option>
+              <option value="Malaysia">Malaysia</option>
+              <option value="Indonesia">Indonesia</option>
+              <option value="Pakistan">Pakistan</option>
+              <option value="India">India</option>
+              <option value="Bangladesh">Bangladesh</option>
+            </select>
+          </label>
+          <label>
+            <span id="cityLabel">City</span>
+            <select id="cityInput">
+              <option value="Cairo">Cairo</option>
+              <option value="Alexandria">Alexandria</option>
+              <option value="Giza">Giza</option>
+            </select>
+          </label>
+          <button type="submit" class="primary-button" id="saveLocationBtn">Save Location</button>
+        </form>
+      </section>
+
+      <section class="app-section">
+        <div class="section-header">
+          <h3 id="quranRadioLabel">Quran Radio</h3>
+          <p id="radioStatus" class="loading-hint">No station playing</p>
+        </div>
+
+        <div class="radio-controls">
+          <select id="radioSelect" aria-label="Select Quran radio station">
+            <option value="">Loading stations...</option>
+          </select>
+          <div class="button-row">
+            <button id="radioPlay" type="button" class="primary-button">Play</button>
+            <button id="radioStop" type="button" class="secondary-button">Stop</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="app-section">
+        <div class="section-header">
+          <h3 id="azkarLabel">Azkar</h3>
+          <div class="segmented-control" role="group" aria-label="Azkar type">
+            <button id="morningAzkarTab" type="button" class="segment-button segment-button--active">Morning</button>
+            <button id="eveningAzkarTab" type="button" class="segment-button">Evening</button>
+          </div>
+        </div>
+
+        <div id="azkarList" class="azkar-list" aria-live="polite"></div>
       </section>
     </main>
 

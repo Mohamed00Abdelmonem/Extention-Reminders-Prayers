@@ -1,31 +1,35 @@
-/* Clean theme system and modern popup layout for Salah Reminder. */
+@import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cairo:wght@400;700;800&display=swap');
+
+/* Clean popup layout for the Salah daily assistant. */
 
 :root {
   color-scheme: light;
   --bg: #f4f7fb;
-  --panel: rgba(255, 255, 255, 0.88);
+  --panel: rgba(255, 255, 255, 0.92);
   --panel-strong: #ffffff;
   --text: #0f172a;
   --muted: #64748b;
-  --border: rgba(148, 163, 184, 0.22);
+  --border: rgba(100, 116, 139, 0.24);
   --accent: #0f766e;
   --accent-soft: rgba(15, 118, 110, 0.12);
   --accent-strong: #115e59;
-  --shadow: 0 20px 60px rgba(15, 23, 42, 0.12);
+  --danger: #b91c1c;
+  --shadow: 0 16px 42px rgba(15, 23, 42, 0.12);
 }
 
 body.theme-dark {
   color-scheme: dark;
-  --bg: #0b1120;
-  --panel: rgba(15, 23, 42, 0.78);
-  --panel-strong: #111827;
-  --text: #e5eefb;
-  --muted: #94a3b8;
-  --border: rgba(148, 163, 184, 0.16);
-  --accent: #38bdf8;
-  --accent-soft: rgba(56, 189, 248, 0.14);
+  --bg: #101820;
+  --panel: rgba(24, 32, 40, 0.92);
+  --panel-strong: #17212b;
+  --text: #edf6f9;
+  --muted: #9fb0bf;
+  --border: rgba(159, 176, 191, 0.22);
+  --accent: #2dd4bf;
+  --accent-soft: rgba(45, 212, 191, 0.14);
   --accent-strong: #7dd3fc;
-  --shadow: 0 20px 60px rgba(2, 6, 23, 0.45);
+  --danger: #fca5a5;
+  --shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
 }
 
 * {
@@ -34,21 +38,40 @@ body.theme-dark {
 
 body {
   margin: 0;
-  width: 380px;
-  min-height: 520px;
-  font-family: "Segoe UI", Arial, sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.22), transparent 35%),
-    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.18), transparent 30%),
-    linear-gradient(180deg, var(--bg), var(--bg));
+  width: 390px;
+  min-height: 600px;
+  font-family: "Cairo", "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(180deg, var(--bg), var(--bg));
   color: var(--text);
 }
 
-button {
+body.lang-ar {
+  direction: rtl;
+}
+
+body.lang-ar .topbar,
+body.lang-ar .section-header {
+  flex-direction: row;
+}
+
+body.lang-ar .azkar-item__text {
+  font-family: "Amiri Quran", serif;
+  font-size: 18px;
+}
+
+button,
+input,
+select {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
 .popup-shell {
+  display: grid;
+  gap: 12px;
   padding: 16px;
 }
 
@@ -57,100 +80,116 @@ button {
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 14px;
-}
-
-.eyebrow {
-  margin: 0 0 4px;
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-  font-weight: 700;
 }
 
 .brand-logo {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--panel-strong);
   margin-bottom: 8px;
 }
 
-h1 {
-  margin: 0;
-  font-size: 22px;
-  line-height: 1.1;
+.eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 800;
 }
 
-.meta-line {
-  margin: 6px 0 0;
-  font-size: 13px;
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 0;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+h2 {
+  margin-bottom: 0;
+  font-size: 24px;
+}
+
+h3 {
+  margin-bottom: 0;
+  font-size: 16px;
+}
+
+.meta-line,
+.status,
+.loading-hint {
   color: var(--muted);
+  font-size: 12px;
+}
+
+.meta-line,
+.status {
+  margin-bottom: 0;
+}
+
+.theme-toggle,
+.primary-button,
+.secondary-button,
+.segment-button {
+  min-height: 38px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
 .theme-toggle {
-  border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text);
-  border-radius: 999px;
-  padding: 10px 14px;
-  cursor: pointer;
+  padding: 8px 12px;
   box-shadow: var(--shadow);
-  transition: transform 0.18s ease, border-color 0.18s ease;
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover,
+.primary-button:hover,
+.secondary-button:hover,
+.segment-button:hover {
   transform: translateY(-1px);
   border-color: var(--accent);
 }
 
 .hero-card,
-.schedule-card {
+.app-section {
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 8px;
   background: var(--panel);
-  backdrop-filter: blur(16px);
   box-shadow: var(--shadow);
 }
 
 .hero-card {
   padding: 18px;
-  margin-bottom: 14px;
 }
 
 .hero-card__label {
-  margin: 0 0 8px;
+  margin-bottom: 8px;
   color: var(--muted);
   font-size: 13px;
-}
-
-.hero-card h2 {
-  margin: 0;
-  font-size: 24px;
 }
 
 .hero-card__time {
-  margin: 8px 0 8px;
+  margin: 8px 0;
   font-size: 30px;
   font-weight: 800;
-  letter-spacing: -0.02em;
   color: var(--accent-strong);
 }
 
-.status {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
+.app-section {
+  padding: 14px;
 }
 
-.schedule-card {
-  padding: 16px;
-}
-
-.schedule-card__header {
+.section-header {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -158,34 +197,26 @@ h1 {
   margin-bottom: 12px;
 }
 
-.schedule-card__header h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
 .loading-hint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--muted);
+  margin-bottom: 0;
+  text-align: right;
 }
 
 .prayer-grid {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .prayer-card {
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 14px;
+  border-radius: 8px;
+  padding: 12px;
   background: var(--panel-strong);
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
 .prayer-card--next {
   border-color: var(--accent);
   background: linear-gradient(180deg, var(--accent-soft), transparent 100%), var(--panel-strong);
-  transform: translateY(-1px);
 }
 
 .prayer-card__top {
@@ -206,29 +237,162 @@ h1 {
   color: var(--accent-strong);
   padding: 4px 10px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .prayer-card__time {
-  margin-top: 8px;
-  font-size: 24px;
+  margin-top: 6px;
+  font-size: 22px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
 .prayer-card__note {
-  margin-top: 4px;
   min-height: 16px;
-  font-size: 12px;
+  margin-top: 3px;
   color: var(--muted);
+  font-size: 12px;
+}
+
+.settings-form,
+.radio-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--panel-strong);
+  color: var(--text);
+}
+
+.switch-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.switch-control input {
+  width: 16px;
+  min-height: 16px;
+  accent-color: var(--accent);
+}
+
+.primary-button {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
+  font-weight: 800;
+}
+
+.secondary-button {
+  background: var(--panel-strong);
+  color: var(--text);
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.segmented-control {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segment-button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 0;
+  padding: 6px 10px;
+  background: var(--panel-strong);
+  color: var(--muted);
+}
+
+.segment-button--active {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.azkar-list {
+  display: grid;
+  gap: 8px;
+  max-height: 210px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.azkar-item {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-strong);
+}
+
+.azkar-item__text {
+  margin: 0;
+  direction: rtl;
+  text-align: right;
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.azkar-item__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.done-button {
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.done-button--done {
+  background: var(--accent);
+  color: #ffffff;
+  border-color: var(--accent);
 }
 
 .empty-state {
   display: grid;
   gap: 4px;
-  padding: 16px;
+  padding: 14px;
   text-align: center;
   color: var(--muted);
+}
+
+.error-text {
+  color: var(--danger);
 }
 
 @media (max-width: 400px) {
@@ -237,8 +401,12 @@ h1 {
   }
 
   .topbar,
-  .schedule-card__header {
-    flex-direction: column;
+  .section-header {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .loading-hint {
+    text-align: left;
   }
 }
