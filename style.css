@@ -36,6 +36,10 @@ body.theme-dark {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   width: 390px;
@@ -73,6 +77,7 @@ button {
   display: grid;
   gap: 12px;
   padding: 16px;
+  padding-bottom: 86px;
 }
 
 .topbar {
@@ -166,6 +171,7 @@ h3 {
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
+  scroll-margin-top: 16px;
 }
 
 .hero-card {
@@ -393,6 +399,53 @@ select {
 
 .error-text {
   color: var(--danger);
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  padding: 10px 0;
+  z-index: 100;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+  text-decoration: none;
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.nav-item svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s;
+}
+
+.nav-item:hover, .nav-item:focus {
+  color: var(--accent);
+}
+
+.nav-item:hover svg {
+  transform: scale(1.15);
 }
 
 @media (max-width: 400px) {
